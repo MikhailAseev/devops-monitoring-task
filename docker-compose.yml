@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+    prometheus:
+        build: ./prometheus
+        ports:
+            - 9090:9090
+        networks:
+            docker:
+              ipv4_address: 172.31.0.2
+    grafana:
+        build: ./grafana
+        ports:
+            - 3000:3000
+        networks:
+            docker:
+              ipv4_address: 172.31.0.3
+networks:
+    docker:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+              - subnet: "172.31.0.1/16"

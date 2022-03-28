@@ -1,0 +1,66 @@
+---
+- name: Setting up Prometheus Node Exporter, Prometheus and Grafana for DevOps monitoring
+  hosts: all
+  vars:
+    - node_exporter_version: 1.3.1
+    - platform: amd64
+
+  tasks:
+  
+  - name: Install Docker and Docker Compose packages
+    become: yes
+    apt:
+        pkg:
+        - docker
+        - docker-compose
+        update_cache: yes
+
+  - name: Download Prometheus Node Exporter package
+    get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz"
+        dest: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz"
+
+  - name: Unarchive downloaded Prometheus Node Exporter package
+    unarchive:
+        src: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz"
+        dest: "."
+        remote_src: yes
+
+  - name: Delete Prometheus Node Exporter archive
+    file:
+        path: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz"
+        state: absent
+
+  - name: Execute Prometheus Node Exporter
+    shell: ./node_exporter --collector.systemd --collector.processes >> node_exporter.log 2>&1 &
+    args:
+        chdir: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}/"
+    async: 5
+    poll: 0
+
+  - name: Create directories for Docker containers
+    file:
+        path: "./{{ item }}"
+        state: directory
+    loop:
+        - prometheus
+        - grafana
+        - grafana/dashboards
+
+  - name: Upload necessary files
+    copy:
+        src: "{{ item.directory }}/{{ item.filename }}"
+        dest: "{{ item.directory }}"
+    loop:
+        - { directory: ., filename: docker-compose.yml }
+        - { directory: prometheus, filename: Dockerfile }
+        - { directory: prometheus, filename: prometheus.yml }
+        - { directory: grafana, filename: Dockerfile }
+        - { directory: grafana, filename: default.yml }
+        - { directory: grafana, filename: node-exporter.yml }
+        - { directory: grafana/dashboards, filename: node-exporter-full.json }
+
+  - name: Run Docker Compose
+    docker_compose:
+        project_src: "."
+    become: yes
