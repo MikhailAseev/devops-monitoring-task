@@ -1,5 +1,5 @@
-# DevOps Monitoring with Prometheus, Prometheus Node Exporter and Grafana
-Task Description
+# DevOps monitoring with Prometheus, Prometheus Node Exporter and Grafana
+## Task Description
 
 Write a Vagrantfile which (after `vagrant up`):
 - starts Ubuntu 20.04 VirtualBox virtual machine (generic/ubuntu2004);
