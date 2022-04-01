@@ -4,5 +4,5 @@ global:
 scrape_configs:
 - job_name: node
   static_configs:
-  - targets: ['172.31.0.1:9100']
+  - targets: ['ubuntu2004:9100']
 

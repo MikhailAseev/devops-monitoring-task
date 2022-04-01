@@ -2,19 +2,23 @@ version: '3'
 
 services:
     prometheus:
-        build: ./prometheus
+        image: prom/prometheus 
         ports:
             - 9090:9090
+        volumes:
+            - ./prometheus:/etc/prometheus/
         networks:
-            docker:
-              ipv4_address: 172.31.0.2
+            - docker
     grafana:
-        build: ./grafana
+        image: grafana/grafana-enterprise
         ports:
             - 3000:3000
+        volumes:
+            - ./grafana/datasources:/etc/grafana/provisioning/datasources
+            - ./grafana/providers:/etc/grafana/provisioning/dashboards
+            - ./grafana/dashboards:/var/lib/grafana/dashboards
         networks:
-            docker:
-              ipv4_address: 172.31.0.3
+            - docker
 networks:
     docker:
         driver: bridge

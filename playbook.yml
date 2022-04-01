@@ -7,7 +7,7 @@
 
   tasks:
   
-  - name: Install Docker and Docker Compose packages
+  - name: Install necessary packages
     become: yes
     apt:
         pkg:
@@ -39,7 +39,7 @@
         group: node_exporter
     become: yes
 
-  - name: Create directory for Prometheus Node Exporter logs
+  - name: Create /var/log/node_exporter directory for Prometheus Node Exporter logs
     file:
         path: /var/log/node_exporter
         state: directory
@@ -75,26 +75,26 @@
         enabled: yes
     become: yes
 
-  - name: Create directories for Docker containers
+  - name: Create directories for storing configuration files of Prometheus and Grafana
     file:
         path: "./{{ item }}"
         state: directory
     loop:
         - prometheus
         - grafana
+        - grafana/datasources
+        - grafana/providers
         - grafana/dashboards
 
-  - name: Upload necessary files
+  - name: Upload necessary configuration files of Prometheus and Grafana
     copy:
         src: "{{ item.directory }}/{{ item.filename }}"
         dest: "{{ item.directory }}"
     loop:
         - { directory: ., filename: docker-compose.yml }
-        - { directory: prometheus, filename: Dockerfile }
         - { directory: prometheus, filename: prometheus.yml }
-        - { directory: grafana, filename: Dockerfile }
-        - { directory: grafana, filename: default.yml }
-        - { directory: grafana, filename: node-exporter.yml }
+        - { directory: grafana/datasources, filename: node-exporter.yml }
+        - { directory: grafana/providers, filename: node-exporter.yml }
         - { directory: grafana/dashboards, filename: node-exporter-full.json }
 
   - name: Run Docker Compose
