@@ -23,20 +23,57 @@
   - name: Unarchive downloaded Prometheus Node Exporter package
     unarchive:
         src: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz"
-        dest: "."
+        dest: .
         remote_src: yes
 
-  - name: Delete Prometheus Node Exporter archive
-    file:
-        path: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz"
-        state: absent
+  - name: Create node_exporter user
+    user:
+        name: node_exporter
+        shell: /sbin/nologin
+    become: yes
 
-  - name: Execute Prometheus Node Exporter
-    shell: ./node_exporter --collector.systemd --collector.processes >> node_exporter.log 2>&1 &
-    args:
-        chdir: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}/"
-    async: 5
-    poll: 0
+  - name: Change ownership of Prometheus Node Exporter executable binary
+    file:
+        path: "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}/node_exporter"
+        owner: node_exporter
+        group: node_exporter
+    become: yes
+
+  - name: Create directory for Prometheus Node Exporter logs
+    file:
+        path: /var/log/node_exporter
+        state: directory
+        owner: node_exporter
+        group: node_exporter
+    become: yes
+
+  - name: Move Prometheus Node Exporter executable binary to /usr/sbin directory
+    command: 
+        cmd: mv "./node_exporter-{{ node_exporter_version }}.linux-{{ platform }}/node_exporter" /usr/sbin/
+        creates: /usr/sbin/node_exporter
+    become: yes
+
+  - name: Copy Prometheus Node Exporter systemd unit file
+    copy:
+        src: node_exporter.service
+        dest: /etc/systemd/system/node_exporter.service
+    become: yes
+
+  - name: Delete unnecessary Prometheus Node Exporter files
+    file:
+        path: "{{ item }}"
+        state: absent
+    loop:
+        - node_exporter-{{ node_exporter_version }}.linux-{{ platform }}.tar.gz
+        - node_exporter-{{ node_exporter_version }}.linux-{{ platform }}/
+
+  - name: Start and enable Prometheus Node Exporter service
+    systemd:
+        daemon_reload: yes
+        name: node_exporter.service
+        state: started
+        enabled: yes
+    become: yes
 
   - name: Create directories for Docker containers
     file:
@@ -62,7 +99,7 @@
 
   - name: Run Docker Compose
     docker_compose:
-        project_src: "."
+        project_src: .
     become: yes
 
   - name: Pause for correct visualization of metrics from Prometheus Node Exporter on the Grafana dashboard
